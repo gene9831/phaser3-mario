@@ -1,0 +1,167 @@
+{
+  "textures": [
+    {
+      "image": "mario.png",
+      "format": "RGBA8888",
+      "size": {
+        "w": 213,
+        "h": 34
+      },
+      "scale": 1,
+      "frames": [
+        {
+          "filename": "break_0.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 3,
+            "y": 0,
+            "w": 28,
+            "h": 32
+          },
+          "frame": {
+            "x": 1,
+            "y": 1,
+            "w": 28,
+            "h": 32
+          }
+        },
+        {
+          "filename": "die_0.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 1,
+            "y": 0,
+            "w": 30,
+            "h": 29
+          },
+          "frame": {
+            "x": 31,
+            "y": 1,
+            "w": 30,
+            "h": 29
+          }
+        },
+        {
+          "filename": "idle_0.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 3,
+            "y": 0,
+            "w": 26,
+            "h": 32
+          },
+          "frame": {
+            "x": 63,
+            "y": 1,
+            "w": 26,
+            "h": 32
+          }
+        },
+        {
+          "filename": "jump_0.png",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 32
+          },
+          "frame": {
+            "x": 91,
+            "y": 1,
+            "w": 32,
+            "h": 32
+          }
+        },
+        {
+          "filename": "walk_0.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 1,
+            "y": 1,
+            "w": 28,
+            "h": 31
+          },
+          "frame": {
+            "x": 125,
+            "y": 1,
+            "w": 28,
+            "h": 31
+          }
+        },
+        {
+          "filename": "walk_1.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 5,
+            "y": 0,
+            "w": 24,
+            "h": 32
+          },
+          "frame": {
+            "x": 155,
+            "y": 1,
+            "w": 24,
+            "h": 32
+          }
+        },
+        {
+          "filename": "walk_2.png",
+          "rotated": false,
+          "trimmed": true,
+          "sourceSize": {
+            "w": 32,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 31,
+            "h": 32
+          },
+          "frame": {
+            "x": 181,
+            "y": 1,
+            "w": 31,
+            "h": 32
+          }
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "3.0",
+    "smartupdate": "$TexturePacker:SmartUpdate:7c126646fe6977b6e89a4e52f45c6790:1a0d206f1a5aa5aaaef42097d967339f:049a1e10ddf44989e4af4e84fecd01e8$"
+  }
+}
