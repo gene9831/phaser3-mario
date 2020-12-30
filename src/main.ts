@@ -1,18 +1,26 @@
-import Phaser from 'phaser'
+import Phaser from "phaser";
 
-import HelloWorldScene from './scenes/HelloWorldScene'
+import MainScene from "./scenes/MainScene";
 
 const config: Phaser.Types.Core.GameConfig = {
-	type: Phaser.AUTO,
-	width: 800,
-	height: 600,
-	physics: {
-		default: 'arcade',
-		arcade: {
-			gravity: { y: 200 }
-		}
-	},
-	scene: [HelloWorldScene]
-}
+  parent: "phaser3-game",
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  audio: {
+    disableWebAudio: true,
+  },
+  scale: {
+    autoCenter: Phaser.Scale.Center.CENTER_HORIZONTALLY,
+  },
+  physics: {
+    default: "arcade",
+    arcade: {
+      // debug: true,
+      gravity: { y: 1000 },
+    },
+  },
+  scene: [MainScene],
+};
 
-export default new Phaser.Game(config)
+export default new Phaser.Game(config);
