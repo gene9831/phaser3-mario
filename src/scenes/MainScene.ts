@@ -1,20 +1,28 @@
 import Phaser from "phaser";
+import { SMBPhysics } from "~/smb-physics";
 
 export default class MainScene extends Phaser.Scene {
+  private readonly smbPhysics = new SMBPhysics(32);
   private gravityY: number = 0;
 
   private platform?: Phaser.Physics.Arcade.StaticGroup;
   private player?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
-  private keyA?: Phaser.Input.Keyboard.Key;
-  private keyD?: Phaser.Input.Keyboard.Key;
-  private keySpace?: Phaser.Input.Keyboard.Key;
-  private keyShift?: Phaser.Input.Keyboard.Key;
+  private keys?: Record<string, Phaser.Input.Keyboard.Key>;
 
   private bmg?: Phaser.Sound.BaseSound;
 
+  private state: {
+    airOrGround: "air" | "ground";
+    groud: "idle" | "walking" | "running" | "runAWhile" | "skidding" | "release";
+  };
+
   constructor() {
     super("main");
+    this.state = {
+      airOrGround: "ground",
+      groud: "idle",
+    };
   }
 
   preload() {
@@ -25,51 +33,23 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
+    console.log(this.smbPhysics);
     this.gravityY = this.physics.getConfig().gravity?.y || 0;
 
-    this.platform = this.physics.add.staticGroup({
-      key: "block",
-      repeat: Math.ceil(800 / 32) - 1,
-      setXY: { x: 16, y: 600 - 32, stepX: 32 },
-    });
-    this.platform.createFromConfig({
-      key: "block",
-      repeat: Math.ceil(800 / 32),
-      setXY: { x: 16, y: 600, stepX: 32 },
-    });
-    this.platform.createFromConfig({
-      key: "block",
-      repeat: 3,
-      setXY: { x: 66, y: 600 - 5 * 32, stepX: 32 },
-    });
-    this.platform.createFromConfig({
-      key: "block",
-      repeat: 3,
-      setXY: { x: 366, y: 600 - 9 * 32, stepX: 32 },
-    });
-    this.platform.createFromConfig({
-      key: "block",
-      repeat: 3,
-      setXY: { x: 666, y: 600 - 13 * 32, stepX: 32 },
-    });
-    this.platform.createFromConfig({
-      key: "block",
-      repeat: 3,
-      setXY: { x: 370, y: 600 - 17 * 32, stepX: 32 },
-    });
-    this.platform.createFromConfig({
-      key: "block",
-      repeat: 3,
-      setXY: { x: 100, y: 600 - 14 * 32, stepX: 32 },
-    });
+    this.platform = this.createPlatform();
 
-    this.player = this.physics.add.sprite(100, 500, "mario", "idle_0.png");
+    this.player = this.physics.add.sprite(100, 600 - 32 * 2, "mario", "mario-0.png");
     this.player.setCollideWorldBounds(true);
-    this.player.setMaxVelocity(300, 1000);
-    this.player.setDrag(300);
+    this.player.setMaxVelocity(this.smbPhysics.velocities.maxRun, 1000);
+    this.player.setDragX(this.smbPhysics.decelerations.release);
     this.player.setSize(26, 30);
+    console.log(this.player.width, this.player.body.width);
 
-    this.physics.add.collider(this.platform, this.player);
+    this.physics.add.collider(this.platform, this.player, (_paltfrom, _play) => {
+      if (_paltfrom.body.touching.up && _play.body.touching.down) {
+        this.state.airOrGround = "ground";
+      }
+    });
 
     this.addKeys();
 
@@ -82,128 +62,58 @@ export default class MainScene extends Phaser.Scene {
     this.bmg.play();
   }
 
-  private walkF = 300;
-  private runF = 400;
-  private jumpV0 = 200;
-  private jumpF = 1400;
-  private jumping = false;
-  private disableKey: string = "";
-  private breaking = 0;
-
-  update() {
-    if (!this.player) return;
-    const vx = this.player.body.velocity.x;
-    const vy = this.player.body.velocity.y;
-
-    if (vy > 400) {
-      this.player.setVelocityY(400);
-    }
-
-    if (this.keyShift?.isDown) {
-      // already setMaxVelocity in create func
-      // this.player.body.maxVelocity.x = 300;
-      this.disableKey = "";
-    } else {
-      if (Math.abs(vx) > 200) {
-        this.disableKey = Math.sign(vx) > 0 ? "D" : "A";
-      } else {
-        this.disableKey = "";
-      }
-    }
-
-    if (this.keyA?.isDown && this.disableKey !== "A") {
-      let times = 1;
-      if (vx > 0) times = 1.5;
-      this.breaking = vx > 50 ? -1 : 0;
-      this.player.setAccelerationX(-times * (this.keyShift?.isDown ? this.runF : this.walkF));
-    } else if (this.keyD?.isDown && this.disableKey !== "D") {
-      let times = 1;
-      if (vx < 0) times = 1.5;
-      this.breaking = vx < -50 ? 1 : 0;
-      this.player.setAccelerationX(times * (this.keyShift?.isDown ? this.runF : this.walkF));
-    } else {
-      this.player.setAccelerationX(0);
-    }
-
-    if (this.jumping) {
-      const duration = this.keySpace?.getDuration() || 0;
-      if (duration > 200) {
-        this.jumping = false;
-      }
-    }
-
-    if (!this.jumping) {
-      if (vy !== 0) {
-        this.player?.setAccelerationY(this.gravityY);
-      } else {
-        this.player?.setAccelerationY(0);
-      }
-    }
-
-    if (this.player.body.touching.down) {
-      // 接触地面才能改变动画
-      // 翻转sprite
-      if (vx === 0) {
-        if (this.keyA?.isDown) {
-          this.player.flipX = true;
-        }
-        this.player.play("idle", true);
-        this.breaking = 0;
-      } else {
-        this.player.flipX = vx < 0;
-        if (vx < 0) {
-          if (this.keyD?.isDown) {
-            if (this.breaking === 1) this.player.play("break", true);
-          } else this.player.play(Math.abs(vx) < 300 ? "walk" : "run", true);
-        } else {
-          if (this.keyA?.isDown) {
-            if (this.breaking === -1) this.player.play("break", true);
-          } else this.player.play(Math.abs(vx) < 300 ? "walk" : "run", true);
-        }
-      }
-    } else {
-      this.player.play("jump", true);
-    }
-  }
-
-  private jump() {
-    if (!this.player) return;
-    if (this.player.body.touching.down) {
-      this.jumping = true;
-      this.player.setVelocityY(-this.jumpV0);
-      this.player.setAccelerationY(-(this.gravityY + this.jumpF));
-      this.sound.play("jump_small");
-    }
-  }
-
-  private jumpBreak() {
-    this.jumping = false;
+  createPlatform(): Phaser.Physics.Arcade.StaticGroup {
+    const platform = this.physics.add.staticGroup({
+      key: "block",
+      repeat: Math.ceil(800 / 32) - 1,
+      setXY: { x: 16, y: 600 - 32, stepX: 32 },
+    });
+    platform.createFromConfig({
+      key: "block",
+      repeat: Math.ceil(800 / 32),
+      setXY: { x: 16, y: 600, stepX: 32 },
+    });
+    platform.createFromConfig({
+      key: "block",
+      repeat: 3,
+      setXY: { x: 66, y: 600 - 5 * 32, stepX: 32 },
+    });
+    platform.createFromConfig({
+      key: "block",
+      repeat: 3,
+      setXY: { x: 366, y: 600 - 9 * 32, stepX: 32 },
+    });
+    platform.createFromConfig({
+      key: "block",
+      repeat: 3,
+      setXY: { x: 666, y: 600 - 13 * 32, stepX: 32 },
+    });
+    platform.createFromConfig({
+      key: "block",
+      repeat: 3,
+      setXY: { x: 350, y: 600 - 16 * 32, stepX: 32 },
+    });
+    platform.createFromConfig({
+      key: "block",
+      repeat: 3,
+      setXY: { x: 100, y: 600 - 14 * 32, stepX: 32 },
+    });
+    return platform;
   }
 
   private addKeys() {
-    this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-    this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.keySpace.on("down", this.jump, this);
-    this.keySpace.on("up", this.jumpBreak, this);
-    this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-    this.input.keyboard.on(
-      "keydown-M",
-      () => {
-        if (this.bmg) {
-          console.log(11);
-          const bgm = this.bmg as Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
-          bgm.setMute(!bgm.mute);
-        }
-      },
-      this
-    );
+    this.keys = this.input.keyboard.addKeys({
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+      buttonA: Phaser.Input.Keyboard.KeyCodes.SPACE,
+      buttonB: Phaser.Input.Keyboard.KeyCodes.SHIFT,
+    }) as Record<string, Phaser.Input.Keyboard.Key>;
   }
 
   private createAnims() {
     this.anims.create({
       key: "idle",
-      frames: [{ key: "mario", frame: "idle_0.png" }],
+      frames: [{ key: "mario", frame: "mario-0.png" }],
       frameRate: 20,
     });
     this.anims.create({
@@ -211,15 +121,15 @@ export default class MainScene extends Phaser.Scene {
       frames: [
         {
           key: "mario",
-          frame: "walk_0.png",
+          frame: "mario-1.png",
         },
         {
           key: "mario",
-          frame: "walk_1.png",
+          frame: "mario-2.png",
         },
         {
           key: "mario",
-          frame: "walk_2.png",
+          frame: "mario-3.png",
         },
       ],
       frameRate: 8,
@@ -230,29 +140,146 @@ export default class MainScene extends Phaser.Scene {
       frames: [
         {
           key: "mario",
-          frame: "walk_0.png",
+          frame: "mario-1.png",
         },
         {
           key: "mario",
-          frame: "walk_1.png",
+          frame: "mario-2.png",
         },
         {
           key: "mario",
-          frame: "walk_2.png",
+          frame: "mario-3.png",
         },
       ],
       frameRate: 16,
       repeat: -1,
     });
     this.anims.create({
-      key: "jump",
-      frames: [{ key: "mario", frame: "jump_0.png" }],
+      key: "skid",
+      frames: [{ key: "mario", frame: "mario-4.png" }],
       frameRate: 20,
     });
     this.anims.create({
-      key: "break",
-      frames: [{ key: "mario", frame: "break_0.png" }],
+      key: "jump",
+      frames: [{ key: "mario", frame: "mario-5.png" }],
       frameRate: 20,
     });
+  }
+
+  private runAWhile = false;
+  private runTimer = -1;
+  private setRunTimer() {
+    // if (this.runTimer > 0) {
+    //   clearTimeout(this.runTimer);
+    // }
+    this.runAWhile = true;
+    this.runTimer = setTimeout(() => {
+      this.runAWhile = false;
+      this.runTimer = -1;
+    }, this.smbPhysics.keepingTimeWhenRunningToWalking);
+  }
+  private clearRunTimer() {
+    if (this.runTimer > 0) {
+      clearTimeout(this.runTimer);
+      this.runTimer = -1;
+    }
+    this.runAWhile = false;
+  }
+
+  update() {
+    if (!this.player || !this.keys) return;
+    const vx = this.player.body.velocity.x;
+    const vy = this.player.body.velocity.y;
+
+    console.log(
+      `${this.state.groud}\t${vx.toFixed(3)}\t${this.player.body.acceleration.x}\t${this.player.body.drag.x}`
+    );
+
+    // 十字键水平方向
+    let crossKeyHorizontal: "left" | "right" | "none" = "none";
+    if (this.keys.left.isDown && this.keys.right.isUp) {
+      crossKeyHorizontal = "left";
+    } else if (this.keys.right.isDown && this.keys.left.isUp) {
+      crossKeyHorizontal = "right";
+    }
+
+    if (crossKeyHorizontal !== "none") {
+      // 施加横向力
+      const directionOfAcceleration = crossKeyHorizontal === "left" ? -1 : 1;
+      if ((vx <= 0 && crossKeyHorizontal === "left") || (vx >= 0 && crossKeyHorizontal === "right")) {
+        // 速度与加速度同向
+
+        const minV =
+          this.state.groud === "skidding"
+            ? // 打滑速度降为0后的转向速度大于minWalk，所以你会发现在短的平台上有些大佬喜欢反向起跳然后正向加速
+              this.smbPhysics.velocities.skidTrunaround
+            : this.smbPhysics.velocities.minWalk;
+        if (Math.abs(vx) < minV) {
+          this.player.setVelocityX(directionOfAcceleration * minV);
+        }
+        // buutonB.isDown 的优先级要大于runAWhile
+        if (this.keys.buttonB.isDown) {
+          this.player.body.maxVelocity.x = this.smbPhysics.velocities.maxRun;
+          this.player.setAccelerationX(directionOfAcceleration * this.smbPhysics.accelerations.run);
+          this.state.groud = "running";
+          this.clearRunTimer();
+        } else if (this.runAWhile) {
+          this.player.body.maxVelocity.x = Math.max(Math.abs(vx), this.smbPhysics.velocities.maxWalk);
+          this.state.groud = "runAWhile";
+        } else {
+          if (this.state.groud === "running") {
+            // next state is 'runAWhile'
+            this.setRunTimer();
+          } else {
+            this.player.body.maxVelocity.x = this.smbPhysics.velocities.maxWalk;
+            this.player.setAccelerationX(directionOfAcceleration * this.smbPhysics.accelerations.walk);
+            this.state.groud = "walking";
+          }
+        }
+      } else {
+        // 速度与加速度不同向
+        this.player.setAccelerationX(directionOfAcceleration * this.smbPhysics.decelerations.skid);
+        this.state.groud = "skidding";
+      }
+    } else {
+      // 无横向力作用
+      this.player.setAccelerationX(0);
+      if (vx === 0) {
+        this.state.groud = "idle";
+      } else {
+        if (this.state.groud === "skidding") {
+          // 即使没有横向力了，打滑也要继续，直到速度为0
+          this.player.setDragX(this.smbPhysics.decelerations.skid);
+        } else {
+          this.player.setDragX(this.smbPhysics.decelerations.release);
+          this.state.groud = "release";
+        }
+      }
+    }
+
+    this.playAnims(this.player);
+  }
+
+  private playAnims(_player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) {
+    const vx = _player.body.velocity.x;
+    if (vx > 0) _player.setFlipX(false);
+    else if (vx < 0) _player.setFlipX(true);
+    switch (this.state.groud) {
+      case "idle":
+        _player.anims.play("idle", true);
+        break;
+      case "walking":
+      case "running":
+      case "runAWhile":
+      case "release":
+        _player.anims.play(Math.abs(vx) < this.smbPhysics.velocities.maxRun - 1 ? "walk" : "run", true);
+        break;
+      case "skidding":
+        _player.setFlipX(!_player.flipX);
+        _player.anims.play("skid", true);
+
+      default:
+        break;
+    }
   }
 }
