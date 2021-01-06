@@ -25,6 +25,32 @@ export class SMBPhysics {
     skid: number;
   };
 
+  readonly vertical: {
+    downwardMax: number;
+    initial_vx_0: {
+      lessThan_vx: number;
+      initial_vy: number;
+      holdingA_gy: number;
+      falling_gy: number;
+    };
+    initial_vx_1: {
+      lessThan_vx: number;
+      initial_vy: number;
+      holdingA_gy: number;
+      falling_gy: number;
+    };
+    initial_vx_2: {
+      initial_vy: number;
+      holdingA_gy: number;
+      falling_gy: number;
+    };
+    initial_vx_levelEntry: {
+      initial_vy: number;
+      holdingA_gy: number;
+      falling_gy: number;
+    };
+  };
+
   constructor(blockPixel?: number) {
     if (blockPixel && blockPixel > 0) {
       this.times = blockPixel / this.originalBlockPixel;
@@ -47,6 +73,32 @@ export class SMBPhysics {
     this.decelerations = {
       release: this.transformAcceleration(0xd0),
       skid: this.transformAcceleration(0x1a0),
+    };
+
+    this.vertical = {
+      downwardMax: this.transformVelocity(0x4000),
+      initial_vx_0: {
+        lessThan_vx: this.transformVelocity(0x1000),
+        initial_vy: this.transformVelocity(0x4000),
+        holdingA_gy: this.transformAcceleration(0x200),
+        falling_gy: this.transformAcceleration(0x700),
+      },
+      initial_vx_1: {
+        lessThan_vx: this.transformVelocity(0x2500),
+        initial_vy: this.transformVelocity(0x4000),
+        holdingA_gy: this.transformAcceleration(0x1e0),
+        falling_gy: this.transformAcceleration(0x600),
+      },
+      initial_vx_2: {
+        initial_vy: this.transformVelocity(0x5000),
+        holdingA_gy: this.transformAcceleration(0x280),
+        falling_gy: this.transformAcceleration(0x900),
+      },
+      initial_vx_levelEntry: {
+        initial_vy: this.transformVelocity(0x0),
+        holdingA_gy: this.transformAcceleration(0x280),
+        falling_gy: this.transformAcceleration(0x280),
+      },
     };
   }
 
