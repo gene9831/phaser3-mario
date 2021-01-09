@@ -27,28 +27,33 @@ export class SMBPhysics {
 
   readonly vertical: {
     downwardMax: number;
-    initial_vx_0: {
-      lessThan_vx: number;
+    stage_0: {
+      max_vx: number;
       initial_vy: number;
       holdingA_gy: number;
       falling_gy: number;
     };
-    initial_vx_1: {
-      lessThan_vx: number;
+    stage_1: {
+      max_vx: number;
       initial_vy: number;
       holdingA_gy: number;
       falling_gy: number;
     };
-    initial_vx_2: {
+    stage_2: {
       initial_vy: number;
       holdingA_gy: number;
       falling_gy: number;
     };
-    initial_vx_levelEntry: {
+    levelEntry: {
       initial_vy: number;
       holdingA_gy: number;
       falling_gy: number;
     };
+  };
+
+  readonly air: {
+    A_000D0: number;
+    V_01D00: number;
   };
 
   constructor(blockPixel?: number) {
@@ -77,28 +82,33 @@ export class SMBPhysics {
 
     this.vertical = {
       downwardMax: this.transformVelocity(0x4000),
-      initial_vx_0: {
-        lessThan_vx: this.transformVelocity(0x1000),
+      stage_0: {
+        max_vx: this.transformVelocity(0x1000),
         initial_vy: this.transformVelocity(0x4000),
         holdingA_gy: this.transformAcceleration(0x200),
         falling_gy: this.transformAcceleration(0x700),
       },
-      initial_vx_1: {
-        lessThan_vx: this.transformVelocity(0x2500),
+      stage_1: {
+        max_vx: this.transformVelocity(0x2500),
         initial_vy: this.transformVelocity(0x4000),
         holdingA_gy: this.transformAcceleration(0x1e0),
         falling_gy: this.transformAcceleration(0x600),
       },
-      initial_vx_2: {
+      stage_2: {
         initial_vy: this.transformVelocity(0x5000),
         holdingA_gy: this.transformAcceleration(0x280),
         falling_gy: this.transformAcceleration(0x900),
       },
-      initial_vx_levelEntry: {
+      levelEntry: {
         initial_vy: this.transformVelocity(0x0),
         holdingA_gy: this.transformAcceleration(0x280),
         falling_gy: this.transformAcceleration(0x280),
       },
+    };
+
+    this.air = {
+      A_000D0: this.transformAcceleration(0xd0),
+      V_01D00: this.transformVelocity(0x1d00),
     };
   }
 
@@ -107,7 +117,8 @@ export class SMBPhysics {
    * @param velocity 5位16进制，分别表示blocks, pixels, sub-pixels, ss-pixels, sss-pixels. 每个都是前一个的1/16.
    */
   transformVelocity = (velocity: number) => {
-    return (((velocity * this.frameRate) >> 8) / 16) * this.times;
+    // return ((velocity * this.frameRate) >> 12) * this.times;
+    return ((velocity * this.frameRate) / Math.pow(16, 3)) * this.times;
   };
 
   /**
@@ -115,7 +126,8 @@ export class SMBPhysics {
    * @param acceleration 5位16进制，分别表示blocks, pixels, sub-pixels, ss-pixels, sss-pixels. 每个都是前一个的1/16. Super mario bros中一个block是16个pixcel
    */
   transformAcceleration = (acceleration: number) => {
-    return (((acceleration * this.frameRate * this.frameRate) >> 8) / 16) * this.times;
+    // return ((acceleration * this.frameRate * this.frameRate) >> 12) * this.times;
+    return ((acceleration * this.frameRate * this.frameRate) / Math.pow(16, 3)) * this.times;
   };
 }
 

@@ -5,8 +5,8 @@ import MainScene from "./scenes/MainScene";
 const config: Phaser.Types.Core.GameConfig = {
   parent: "phaser3-game",
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: 1024,
+  height: 448,
   audio: {
     disableWebAudio: true,
   },
@@ -16,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: "arcade",
     arcade: {
-      debug: true,
+      // debug: true,
     },
   },
   scene: [MainScene],
