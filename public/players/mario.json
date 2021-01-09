@@ -4,118 +4,13 @@
 			"image": "mario.png",
 			"format": "RGBA8888",
 			"size": {
-				"w": 64,
-				"h": 235
+				"w": 86,
+				"h": 222
 			},
-			"scale": 2,
+			"scale": 1,
 			"frames": [
 				{
-					"filename": "mario-0.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 3,
-						"y": 0,
-						"w": 26,
-						"h": 32
-					},
-					"frame": {
-						"x": 1,
-						"y": 1,
-						"w": 26,
-						"h": 32
-					}
-				},
-				{
-					"filename": "mario-1.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
-						"y": 1,
-						"w": 28,
-						"h": 31
-					},
-					"frame": {
-						"x": 29,
-						"y": 1,
-						"w": 28,
-						"h": 31
-					}
-				},
-				{
-					"filename": "mario-2.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 5,
-						"y": 0,
-						"w": 24,
-						"h": 32
-					},
-					"frame": {
-						"x": 1,
-						"y": 35,
-						"w": 24,
-						"h": 32
-					}
-				},
-				{
-					"filename": "mario-3.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 31,
-						"h": 32
-					},
-					"frame": {
-						"x": 27,
-						"y": 35,
-						"w": 31,
-						"h": 32
-					}
-				},
-				{
-					"filename": "mario-4.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
-						"y": 0,
-						"w": 28,
-						"h": 32
-					},
-					"frame": {
-						"x": 1,
-						"y": 69,
-						"w": 28,
-						"h": 32
-					}
-				},
-				{
-					"filename": "mario-5.png",
+					"filename": "mario-jump-0",
 					"rotated": false,
 					"trimmed": false,
 					"sourceSize": {
@@ -129,161 +24,14 @@
 						"h": 32
 					},
 					"frame": {
-						"x": 31,
-						"y": 69,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
-					"filename": "mario-6.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
+						"x": 0,
 						"y": 0,
-						"w": 30,
-						"h": 29
-					},
-					"frame": {
-						"x": 1,
-						"y": 103,
-						"w": 30,
-						"h": 29
-					}
-				},
-				{
-					"filename": "mario-7.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
 						"w": 32,
 						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 3,
-						"y": 0,
-						"w": 28,
-						"h": 32
-					},
-					"frame": {
-						"x": 33,
-						"y": 103,
-						"w": 28,
-						"h": 32
 					}
 				},
 				{
-					"filename": "mario-8.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 3,
-						"y": 1,
-						"w": 26,
-						"h": 31
-					},
-					"frame": {
-						"x": 1,
-						"y": 137,
-						"w": 26,
-						"h": 31
-					}
-				},
-				{
-					"filename": "mario-9.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
-						"y": 1,
-						"w": 28,
-						"h": 31
-					},
-					"frame": {
-						"x": 29,
-						"y": 137,
-						"w": 28,
-						"h": 31
-					}
-				},
-				{
-					"filename": "mario-10.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
-						"y": 1,
-						"w": 28,
-						"h": 31
-					},
-					"frame": {
-						"x": 1,
-						"y": 170,
-						"w": 28,
-						"h": 31
-					}
-				},
-				{
-					"filename": "mario-11.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
-						"y": 1,
-						"w": 28,
-						"h": 31
-					},
-					"frame": {
-						"x": 31,
-						"y": 170,
-						"w": 28,
-						"h": 31
-					}
-				},
-				{
-					"filename": "mario-12.png",
-					"rotated": false,
-					"trimmed": true,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 1,
-						"y": 1,
-						"w": 28,
-						"h": 31
-					},
-					"frame": {
-						"x": 1,
-						"y": 203,
-						"w": 28,
-						"h": 31
-					}
-				},
-				{
-					"filename": "mario-13.png",
+					"filename": "mario-walk-0",
 					"rotated": false,
 					"trimmed": true,
 					"sourceSize": {
@@ -292,23 +40,274 @@
 					},
 					"spriteSourceSize": {
 						"x": 0,
-						"y": 1,
-						"w": 29,
-						"h": 31
+						"y": 0,
+						"w": 30,
+						"h": 32
 					},
 					"frame": {
-						"x": 31,
-						"y": 203,
-						"w": 29,
-						"h": 31
+						"x": 0,
+						"y": 32,
+						"w": 30,
+						"h": 32
+					}
+				},
+				{
+					"filename": "mario-climb-1",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 4,
+						"y": 0,
+						"w": 26,
+						"h": 32
+					},
+					"frame": {
+						"x": 0,
+						"y": 64,
+						"w": 26,
+						"h": 32
+					}
+				},
+				{
+					"filename": "mario-skid-0",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 4,
+						"y": 0,
+						"w": 26,
+						"h": 32
+					},
+					"frame": {
+						"x": 0,
+						"y": 96,
+						"w": 26,
+						"h": 32
+					}
+				},
+				{
+					"filename": "mario-idle-0",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 4,
+						"y": 0,
+						"w": 24,
+						"h": 32
+					},
+					"frame": {
+						"x": 0,
+						"y": 128,
+						"w": 24,
+						"h": 32
+					}
+				},
+				{
+					"filename": "mario-walk-1",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 6,
+						"y": 0,
+						"w": 22,
+						"h": 32
+					},
+					"frame": {
+						"x": 0,
+						"y": 160,
+						"w": 22,
+						"h": 32
+					}
+				},
+				{
+					"filename": "mario-swim-4",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 28,
+						"h": 30
+					},
+					"frame": {
+						"x": 0,
+						"y": 192,
+						"w": 28,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-swim-0",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 2,
+						"y": 0,
+						"w": 26,
+						"h": 30
+					},
+					"frame": {
+						"x": 22,
+						"y": 160,
+						"w": 26,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-swim-1",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 2,
+						"y": 0,
+						"w": 26,
+						"h": 30
+					},
+					"frame": {
+						"x": 24,
+						"y": 128,
+						"w": 26,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-swim-2",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 2,
+						"y": 0,
+						"w": 26,
+						"h": 30
+					},
+					"frame": {
+						"x": 26,
+						"y": 64,
+						"w": 26,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-swim-3",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 2,
+						"y": 0,
+						"w": 26,
+						"h": 30
+					},
+					"frame": {
+						"x": 30,
+						"y": 32,
+						"w": 26,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-walk-2",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 4,
+						"y": 2,
+						"w": 26,
+						"h": 30
+					},
+					"frame": {
+						"x": 32,
+						"y": 0,
+						"w": 26,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-climb-0",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 6,
+						"y": 2,
+						"w": 24,
+						"h": 30
+					},
+					"frame": {
+						"x": 56,
+						"y": 30,
+						"w": 24,
+						"h": 30
+					}
+				},
+				{
+					"filename": "mario-die-0",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 2,
+						"y": 0,
+						"w": 28,
+						"h": 28
+					},
+					"frame": {
+						"x": 58,
+						"y": 0,
+						"w": 28,
+						"h": 28
 					}
 				}
 			]
 		}
 	],
 	"meta": {
-		"app": "https://www.codeandweb.com/texturepacker",
-		"version": "3.0",
-		"smartupdate": "$TexturePacker:SmartUpdate:f94bf63a47043a4ee11406ba1652b834:e1e1564c2daabff24bc1aa8fe694dfb2:049a1e10ddf44989e4af4e84fecd01e8$"
+		"app": "http://free-tex-packer.com",
+		"version": "0.6.6"
 	}
 }
