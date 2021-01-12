@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
 import MainScene from "./scenes/MainScene";
+import TileMapLoader from "./scenes/TileMapLoader";
 
 const config: Phaser.Types.Core.GameConfig = {
   parent: "phaser3-game",
@@ -19,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: true,
     },
   },
-  scene: [MainScene],
+  scene: [TileMapLoader, MainScene],
 };
 
 export default new Phaser.Game(config);

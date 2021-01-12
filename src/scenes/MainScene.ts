@@ -1,92 +1,110 @@
 import Phaser from "phaser";
-import { SMBPhysics } from "~/smb-physics";
 import { debugDraw } from "~/utils/debug";
+import AnimatedTile, { TilesetTileData } from "./AnimatedTile";
 import PlayerController from "./PlayerController";
+import { TileMapData, TileMapConfig, TilesetConfig } from "./TileMapLoader";
 
+const BLOCK_SIZE = 32;
 export default class MainScene extends Phaser.Scene {
-  private readonly smbPhysics = new SMBPhysics(32);
-
   private playerController?: PlayerController;
-  private playerPreviousVelocityY: number = 0;
+
+  private tilemapConfigs: TileMapConfig[] = [];
+  private tilesetConfigs: TilesetConfig[] = [];
+
+  private animatedTiles: AnimatedTile[] = [];
+
+  private gameTime: number = 0;
 
   private debugText?: Phaser.GameObjects.Text;
   private drawDebug = true;
 
   constructor() {
-    super("main");
+    super("level-1-1");
+  }
+
+  init(data: TileMapData) {
+    const { tilemapConfigs, tilesetConfigs } = data;
+    this.tilemapConfigs = tilemapConfigs;
+    this.tilesetConfigs = tilesetConfigs;
   }
 
   preload() {
-    this.load.image("tiles_overworld", "tiles/overworld.png");
-    this.load.image("tiles_underground", "tiles/underground.png");
-    this.load.tilemapTiledJSON("level_1_1", "levels/level-1-1.json");
-
     this.load.atlas("mario", "players/mario.png", "players/mario.json");
   }
 
   create() {
-    // console.log(this.smbPhysics);
+    const levelConfig = this.tilemapConfigs[0];
+    const level = this.make.tilemap({ key: levelConfig.key });
+    const tilesets = levelConfig.tilesetIndex.map((index) => {
+      const config = this.tilesetConfigs[index];
+      return level.addTilesetImage(config.defaultName, config.key);
+    });
 
-    const level_1_1 = this.make.tilemap({ key: "level_1_1" });
-    const tilesOverworld = level_1_1.addTilesetImage("overworld", "tiles_overworld");
-    const tilesUnderground = level_1_1.addTilesetImage("underground", "tiles_underground");
+    const owBackground = level.createLayer("地上背景", tilesets);
+    const owLandspace = level.createLayer("地上风景", tilesets);
+    const owPlatform = level.createLayer("地上平台", tilesets);
+    const target = level.createLayer("目标", tilesets);
+    const castle1 = level.createLayer("城堡", tilesets);
+    const castle2 = level.createLayer("城堡2", tilesets);
 
-    level_1_1.createLayer("地上背景", tilesOverworld);
-    level_1_1.createLayer("地上风景", tilesOverworld);
-    const layer = level_1_1.createLayer("地上平台", tilesOverworld);
-    level_1_1.createLayer("目标", tilesOverworld);
-    level_1_1.createLayer("城堡", tilesOverworld);
+    owPlatform.setCollisionByProperty({ collides: true });
+    castle2.setDepth(1);
 
-    layer.setCollisionByProperty({ collides: true });
+    tilesets.forEach((tileset) => {
+      const tileData = tileset.tileData as TilesetTileData;
+      // console.log(tileData);
 
-    // this.player = this.physics.add.sprite(5550, 348 - 32 * 2, "mario", "mario-idle-0");
-    const player = this.physics.add.sprite(100, layer.height - 32 * 2 - 16, "mario", "mario-idle-0");
-    player.setCollideWorldBounds(true);
-    player.setMaxVelocity(this.smbPhysics.velocities.maxRun, 1000);
-    player.setDragX(this.smbPhysics.decelerations.release);
-    player.setGravityY(this.smbPhysics.vertical.stage_0.falling_gy);
-    player.setBodySize(28, 32);
+      for (let tileId in tileData) {
+        owPlatform.layer.data.forEach((tileRow) => {
+          tileRow.forEach((tile) => {
+            if (tile.index - tileset.firstgid === parseInt(tileId, 10)) {
+              this.animatedTiles.push(new AnimatedTile(tile, tileData[tileId].animation, tileset.firstgid));
+            }
+          });
+        });
+      }
+    });
+
+    const player = this.physics.add.sprite(100, owPlatform.height - BLOCK_SIZE * 2.5, "mario", "mario-idle-0");
 
     this.playerController = new PlayerController(player, this.addKeys(), this.drawDebug);
 
-    level_1_1.createLayer("城堡2", tilesOverworld);
-
-    this.cameras.main.setBounds(0, 48, layer.width, layer.height - 64);
-    this.cameras.main.startFollow(player, true);
-
-    this.physics.add.collider(player, layer, (_player, _tile: unknown) => {
+    this.physics.add.collider(player, owPlatform, (_player, _tile: unknown) => {
       const tile = _tile as Phaser.Tilemaps.Tile;
       if (_player.body.blocked.up && tile.faceBottom) {
         const bodyWidth = _player.body.width;
         if (_player.body.velocity.x === 0) {
           // 静止的时候移动最大半个腰
-          if (_player.body.x + bodyWidth / 2 < tile.pixelX && !layer.getTileAt(tile.x - 1, tile.y)) {
+          if (_player.body.x + bodyWidth / 2 < tile.pixelX && !owPlatform.getTileAt(tile.x - 1, tile.y)) {
             _player.body.x = tile.pixelX - bodyWidth;
-            _player.body.velocity.y = this.playerPreviousVelocityY;
+            _player.body.velocity.y = _player.getData("previousVelocityY");
           } else if (
             _player.body.x + bodyWidth / 2 > tile.pixelX + tile.width &&
-            !layer.getTileAt(tile.x + 1, tile.y)
+            !owPlatform.getTileAt(tile.x + 1, tile.y)
           ) {
             _player.body.x = tile.pixelX + tile.width;
-            _player.body.velocity.y = this.playerPreviousVelocityY;
+            _player.body.velocity.y = _player.getData("previousVelocityY");
           }
         } else {
           // 运动的时候移动最大1/4个腰
-          if (_player.body.x + (bodyWidth * 3) / 4 < tile.pixelX && !layer.getTileAt(tile.x - 1, tile.y)) {
+          if (_player.body.x + (bodyWidth * 3) / 4 < tile.pixelX && !owPlatform.getTileAt(tile.x - 1, tile.y)) {
             _player.body.x = tile.pixelX - bodyWidth;
-            _player.body.velocity.y = this.playerPreviousVelocityY;
+            _player.body.velocity.y = _player.getData("previousVelocityY");
           } else if (
             _player.body.x + bodyWidth / 4 > tile.pixelX + tile.width &&
-            !layer.getTileAt(tile.x + 1, tile.y)
+            !owPlatform.getTileAt(tile.x + 1, tile.y)
           ) {
             _player.body.x = tile.pixelX + tile.width;
-            _player.body.velocity.y = this.playerPreviousVelocityY;
+            _player.body.velocity.y = _player.getData("previousVelocityY");
           }
         }
       }
     });
 
-    this.physics.world.setBounds(0, 0, level_1_1.widthInPixels, level_1_1.heightInPixels);
+    this.physics.world.setBounds(0, 0, level.widthInPixels, level.heightInPixels + BLOCK_SIZE);
+
+    this.cameras.main.setBounds(0, 48, this.physics.world.bounds.width, this.physics.world.bounds.height - 96);
+    this.cameras.main.startFollow(player, true, 0.1);
 
     this.debugText = this.add
       .text(2, 2, "debug", {
@@ -130,11 +148,16 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update(t: number, dt: number) {
+    this.gameTime += dt;
+    // console.log(this.gameTime);
+
     this.playerController?.update(dt);
 
-    const vy = this.playerController?.sprite.body.velocity.y || 0;
-    if (vy != 0) this.playerPreviousVelocityY = vy;
+    let boundLeft = this.cameras.main.worldView.x;
+    let boundRight = boundLeft + this.cameras.main.width;
+    this.animatedTiles.forEach((tile) => tile.update(this.gameTime, dt, boundLeft, boundRight));
 
+    // console.log(t);
     // debug
     if (this.drawDebug && this.debugText) {
       this.debugText.setText(`fps: ${this.game.loop.actualFps}

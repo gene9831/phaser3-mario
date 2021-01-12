@@ -27,9 +27,10 @@ export default class PlayerController {
 
   readonly sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   readonly keys: Record<string, Phaser.Input.Keyboard.Key>;
+  private stateMachine: StateMachine;
+
   private horizontalKeyDirection: -1 | 0 | 1 = 0;
 
-  private stateMachine: StateMachine;
   debugText?: string;
   debug: boolean = false;
 
@@ -38,7 +39,15 @@ export default class PlayerController {
     keys: Record<string, Phaser.Input.Keyboard.Key>,
     debug: boolean = false
   ) {
-    this.sprite = sprite;
+    this.sprite = sprite
+      .setCollideWorldBounds(true)
+      .setMaxVelocity(this.smbPhysics.velocities.maxRun, 1000)
+      .setDragX(this.smbPhysics.decelerations.release)
+      .setGravityY(this.smbPhysics.vertical.stage_0.falling_gy)
+      // He’s almost a square (13 by 16 pixels). http://stiemannkj1.gitlab.io/marios-size-and-shape/
+      .setBodySize(26, 32);
+
+    this.sprite.setData("previousVelocityY", 0);
 
     this.keys = keys;
 
@@ -95,10 +104,7 @@ export default class PlayerController {
           },
         ]
       )
-      .setState(States.Ground.IDLE, States.Ground.NAME);
-
-    console.log(this.smbPhysics);
-    console.log(this.stateMachine.states);
+      .setState(States.Air.FALL, States.Air.NAME);
 
     this.keys.buttonA.on("down", () => {
       if (this.stateMachine.getCurrentState()?.startsWith(States.Ground.NAME)) {
@@ -106,6 +112,11 @@ export default class PlayerController {
         this.stateMachine.setState(States.Air.JUMP, States.Air.NAME);
       }
     });
+
+    if (debug) {
+      // console.log(this.smbPhysics);
+      // console.log(this.stateMachine.states);
+    }
   }
 
   update(dt: number) {
@@ -125,7 +136,11 @@ export default class PlayerController {
     const vx = this.sprite.body.velocity.x;
     const vy = this.sprite.body.velocity.y;
 
-    // console.log(vx);
+    if (vy != 0) this.sprite.setData("previousVelocityY", vy);
+
+    // if (432 - this.sprite.y > 128) {
+    //   console.log(432 - this.sprite.y);
+    // }
 
     if (this.debug) {
       this.debugText = `x: ${this.sprite.x}
@@ -367,6 +382,8 @@ dragY: ${this.sprite.body.drag.y}
   }
 
   private jumpStage = 0;
+  // 起跳初速度补偿值。有趣的是，这个补偿值加上之后和数据刚刚好匹配，很神奇
+  private readonly compesation = 1.1;
   jumpOnEnter() {
     const vx = this.sprite.body.velocity.x;
 
@@ -376,19 +393,19 @@ dragY: ${this.sprite.body.drag.y}
     if (vx_abs < this.smbPhysics.vertical.stage_0.max_vx) {
       // console.log("stage 1");
       this.jumpStage = 1;
-      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_0.initial_vy);
+      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_0.initial_vy * this.compesation);
       this.sprite.setGravityY(this.smbPhysics.vertical.stage_0.holdingA_gy);
     } else if (vx_abs < this.smbPhysics.vertical.stage_1.max_vx) {
       // console.log("stage 2");
       this.jumpStage = 2;
-      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_1.initial_vy);
+      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_1.initial_vy * this.compesation);
       this.sprite.setGravityY(this.smbPhysics.vertical.stage_1.holdingA_gy);
     } else {
       // console.log("stage 3");
       this.jumpStage = 3;
       // stage_2.initial_vy 大于 downMax, 先将垂直速度上限调高
       this.sprite.body.maxVelocity.y = this.smbPhysics.vertical.stage_2.initial_vy;
-      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_2.initial_vy);
+      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_2.initial_vy * this.compesation);
       this.sprite.setGravityY(this.smbPhysics.vertical.stage_2.holdingA_gy);
     }
   }
