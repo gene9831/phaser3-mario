@@ -52,16 +52,8 @@ export default class MainScene extends Phaser.Scene {
 
     tilesets.forEach((tileset) => {
       const tileData = tileset.tileData as TilesetTileData;
-      // console.log(tileData);
-
-      for (let tileId in tileData) {
-        owPlatform.layer.data.forEach((tileRow) => {
-          tileRow.forEach((tile) => {
-            if (tile.index - tileset.firstgid === parseInt(tileId, 10)) {
-              this.animatedTiles.push(new AnimatedTile(tile, tileData[tileId].animation, tileset.firstgid));
-            }
-          });
-        });
+      for (let tileid in tileData) {
+        this.animatedTiles.push(new AnimatedTile(tileid, tileData[tileid].animation, tileset.firstgid, owPlatform));
       }
     });
 
@@ -155,7 +147,7 @@ export default class MainScene extends Phaser.Scene {
 
     let boundLeft = this.cameras.main.worldView.x;
     let boundRight = boundLeft + this.cameras.main.width;
-    this.animatedTiles.forEach((tile) => tile.update(this.gameTime, dt, boundLeft, boundRight));
+    this.animatedTiles.forEach((animatedTile) => animatedTile.update(this.gameTime, dt, boundLeft, boundRight));
 
     // console.log(t);
     // debug

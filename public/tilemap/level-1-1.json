@@ -4,7 +4,7 @@
      "export":
         {
          "format":"json",
-         "target":"levele1-1.json"
+         "target":"level-1-1.json"
         }
     },
  "height":16,
@@ -2418,6 +2418,19 @@
                         }]
                 }, 
                 {
+                 "animation":[
+                        {
+                         "duration":700,
+                         "tileid":64
+                        }, 
+                        {
+                         "duration":150,
+                         "tileid":65
+                        }, 
+                        {
+                         "duration":150,
+                         "tileid":66
+                        }],
                  "id":64,
                  "properties":[
                         {
