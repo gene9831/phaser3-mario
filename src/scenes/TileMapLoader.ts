@@ -24,19 +24,27 @@ export default class TileMapLoader extends Phaser.Scene {
 
   init(data: any) {
     // 无需后缀 .png
-    this.tilesetKeys = ["tiles/overworld", "tiles/underground"];
+    this.tilesetKeys = ["tiles/overworld", "tiles/underground", "tiles/genral"];
 
     // 无需后缀 .json
     this.tilemaps.push({
       key: "tilemap/level-1-1",
-      tilesetIndex: [0, 1],
+      tilesetIndex: [0, 1, 2],
     });
   }
 
   preload() {
     // 加载 tileset
     this.tilesetKeys.forEach((key) => {
-      this.load.image(key);
+      this.load.spritesheet({
+        key: key,
+        frameConfig: {
+          margin: 2,
+          spacing: 2,
+          frameWidth: 32,
+          frameHeight: 32,
+        },
+      });
     });
 
     // 加载 tilemap

@@ -112,6 +112,7 @@ export default class StateMachine {
 
     // next state timer
     if (duration > 0 && nextName) {
+      // TODO 改成累加 delta time 更合适
       this.nextStateTimer = setTimeout(() => {
         this.setState(nextName, nextGroupName);
         this.nextStateTimer = -1;

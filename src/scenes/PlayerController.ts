@@ -1,4 +1,4 @@
-import { SMBPhysics } from "~/smb-physics";
+import { gSmbPhysics } from "~/main";
 import StateMachine from "~/statemachine/StateMachine";
 
 enum Ground {
@@ -23,11 +23,11 @@ const States = {
 };
 
 export default class PlayerController {
-  private readonly smbPhysics = new SMBPhysics(32);
-
   readonly sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   readonly keys: Record<string, Phaser.Input.Keyboard.Key>;
   private stateMachine: StateMachine;
+
+  private gravityY: number;
 
   private horizontalKeyDirection: -1 | 0 | 1 = 0;
 
@@ -39,13 +39,16 @@ export default class PlayerController {
     keys: Record<string, Phaser.Input.Keyboard.Key>,
     debug: boolean = false
   ) {
+    this.gravityY = sprite.scene.physics.config.gravity?.y || 0;
+
     this.sprite = sprite
       .setCollideWorldBounds(true)
-      .setMaxVelocity(this.smbPhysics.velocities.maxRun, 1000)
-      .setDragX(this.smbPhysics.decelerations.release)
-      .setGravityY(this.smbPhysics.vertical.stage_0.falling_gy)
-      // He’s almost a square (13 by 16 pixels). http://stiemannkj1.gitlab.io/marios-size-and-shape/
-      .setBodySize(26, 32);
+      .setMaxVelocity(gSmbPhysics.velocities.maxRun, Infinity)
+      .setDragX(gSmbPhysics.decelerations.release)
+      .setGravityY(gSmbPhysics.vertical.stage_0.falling_gy - this.gravityY)
+      // https://kb.speeddemosarchive.com/File:Hitboxes.png
+      .setBodySize(22, 26);
+    this.sprite.body.offset.y += 3;
 
     this.sprite.setData("previousVelocityY", 0);
 
@@ -112,11 +115,6 @@ export default class PlayerController {
         this.stateMachine.setState(States.Air.JUMP, States.Air.NAME);
       }
     });
-
-    if (debug) {
-      // console.log(this.smbPhysics);
-      // console.log(this.stateMachine.states);
-    }
   }
 
   update(dt: number) {
@@ -137,10 +135,6 @@ export default class PlayerController {
     const vy = this.sprite.body.velocity.y;
 
     if (vy != 0) this.sprite.setData("previousVelocityY", vy);
-
-    // if (432 - this.sprite.y > 128) {
-    //   console.log(432 - this.sprite.y);
-    // }
 
     if (this.debug) {
       this.debugText = `x: ${this.sprite.x}
@@ -208,7 +202,7 @@ dragY: ${this.sprite.body.drag.y}
         case States.Ground.RUN:
         case States.Ground.RUNAWHILE:
         case States.Ground.RELEASE:
-          this.sprite.anims.play(Math.abs(vx) < this.smbPhysics.velocities.maxRun - 1 ? "walk" : "run", true);
+          this.sprite.anims.play(Math.abs(vx) < gSmbPhysics.velocities.maxRun - 1 ? "walk" : "run", true);
           break;
         case States.Ground.SKID:
           this.sprite.anims.play("skid", true);
@@ -231,7 +225,7 @@ dragY: ${this.sprite.body.drag.y}
   }
 
   groundOnEnter() {
-    this.sprite.setGravityY(this.smbPhysics.vertical.stage_0.falling_gy);
+    this.sprite.setGravityY(gSmbPhysics.vertical.stage_0.falling_gy - this.gravityY);
   }
 
   private skidDirection = 0;
@@ -252,13 +246,13 @@ dragY: ${this.sprite.body.drag.y}
         // 速度与加速度同向
 
         // 开始行动的最小初速度速度
-        let minWalkV = this.smbPhysics.velocities.minWalk;
+        let minWalkV = gSmbPhysics.velocities.minWalk;
         if (
           this.stateMachine.isCurrentState(States.Ground.SKID, States.Ground.NAME) &&
           this.skidDirection !== this.horizontalKeyDirection
         ) {
           // 打滑未完成（打滑没有把速度降至0），继续walk或者run，有一个最小skidTrunaround速度
-          minWalkV = this.smbPhysics.velocities.skidTrunaround;
+          minWalkV = gSmbPhysics.velocities.skidTrunaround;
         }
 
         if (vx_abs < minWalkV) {
@@ -273,7 +267,7 @@ dragY: ${this.sprite.body.drag.y}
           this.stateMachine.setState(
             States.Ground.RUNAWHILE,
             States.Ground.NAME,
-            this.smbPhysics.keepingTimeWhenRunningToWalking,
+            gSmbPhysics.keepingTimeWhenRunningToWalking,
             States.Ground.WALK,
             States.Ground.NAME
           );
@@ -302,35 +296,32 @@ dragY: ${this.sprite.body.drag.y}
   }
 
   walkOnEnter() {
-    this.sprite.body.maxVelocity.x = this.smbPhysics.velocities.maxWalk;
-    this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.accelerations.walk);
+    this.sprite.body.maxVelocity.x = gSmbPhysics.velocities.maxWalk;
+    this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.accelerations.walk);
   }
 
   runOnEnter() {
-    this.sprite.body.maxVelocity.x = this.smbPhysics.velocities.maxRun;
-    this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.accelerations.run);
+    this.sprite.body.maxVelocity.x = gSmbPhysics.velocities.maxRun;
+    this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.accelerations.run);
   }
 
   runAWhileOnEnter() {
-    this.sprite.body.maxVelocity.x = Math.max(
-      Math.abs(this.sprite.body.velocity.x),
-      this.smbPhysics.velocities.maxWalk
-    );
+    this.sprite.body.maxVelocity.x = Math.max(Math.abs(this.sprite.body.velocity.x), gSmbPhysics.velocities.maxWalk);
   }
 
   skidOnEnter() {
-    this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.decelerations.skid);
+    this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.decelerations.skid);
   }
 
   skidOnUpdate() {
     if (this.horizontalKeyDirection === 0) {
       // 即使没有横向力了，打滑也要继续，直到速度为0
-      this.sprite.setDragX(this.smbPhysics.decelerations.skid);
+      this.sprite.setDragX(gSmbPhysics.decelerations.skid);
     }
   }
 
   releaseOnEnter() {
-    this.sprite.setDragX(this.smbPhysics.decelerations.release);
+    this.sprite.setDragX(gSmbPhysics.decelerations.release);
   }
 
   private startedJumpSpeed = 0;
@@ -357,23 +348,23 @@ dragY: ${this.sprite.body.drag.y}
 
       if (sameDirection) {
         // 速度与加速度同向
-        if (vx_abs < this.smbPhysics.velocities.maxWalk) {
-          this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.accelerations.walk);
+        if (vx_abs < gSmbPhysics.velocities.maxWalk) {
+          this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.accelerations.walk);
         } else {
-          this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.accelerations.run);
+          this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.accelerations.run);
         }
       } else {
         // 速度与加速度不同向
-        if (vx_abs < this.smbPhysics.velocities.maxWalk) {
-          if (this.startedJumpSpeed < this.smbPhysics.air.V_01D00) {
-            this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.accelerations.walk);
+        if (vx_abs < gSmbPhysics.velocities.maxWalk) {
+          if (this.startedJumpSpeed < gSmbPhysics.air.V_01D00) {
+            this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.accelerations.walk);
           } else {
             // 当你的速度小于0x1900(maxWalk)，但起跳时的速度超过了0x01D00时，会给你一个比walk acceleration更大的加速度
             // 简单的说就是往回拉得更快
-            this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.air.A_000D0);
+            this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.air.A_000D0);
           }
         } else {
-          this.sprite.setAccelerationX(this.horizontalKeyDirection * this.smbPhysics.accelerations.run);
+          this.sprite.setAccelerationX(this.horizontalKeyDirection * gSmbPhysics.accelerations.run);
         }
       }
     } else {
@@ -390,23 +381,23 @@ dragY: ${this.sprite.body.drag.y}
     this.startedJumpSpeed = Math.abs(vx);
 
     const vx_abs = Math.abs(vx);
-    if (vx_abs < this.smbPhysics.vertical.stage_0.max_vx) {
+    if (vx_abs < gSmbPhysics.vertical.stage_0.max_vx) {
       // console.log("stage 1");
       this.jumpStage = 1;
-      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_0.initial_vy * this.compesation);
-      this.sprite.setGravityY(this.smbPhysics.vertical.stage_0.holdingA_gy);
-    } else if (vx_abs < this.smbPhysics.vertical.stage_1.max_vx) {
+      this.sprite.setVelocityY(-gSmbPhysics.vertical.stage_0.initial_vy * this.compesation);
+      this.sprite.setGravityY(gSmbPhysics.vertical.stage_0.holdingA_gy - this.gravityY);
+    } else if (vx_abs < gSmbPhysics.vertical.stage_1.max_vx) {
       // console.log("stage 2");
       this.jumpStage = 2;
-      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_1.initial_vy * this.compesation);
-      this.sprite.setGravityY(this.smbPhysics.vertical.stage_1.holdingA_gy);
+      this.sprite.setVelocityY(-gSmbPhysics.vertical.stage_1.initial_vy * this.compesation);
+      this.sprite.setGravityY(gSmbPhysics.vertical.stage_1.holdingA_gy - this.gravityY);
     } else {
       // console.log("stage 3");
       this.jumpStage = 3;
       // stage_2.initial_vy 大于 downMax, 先将垂直速度上限调高
-      this.sprite.body.maxVelocity.y = this.smbPhysics.vertical.stage_2.initial_vy;
-      this.sprite.setVelocityY(-this.smbPhysics.vertical.stage_2.initial_vy * this.compesation);
-      this.sprite.setGravityY(this.smbPhysics.vertical.stage_2.holdingA_gy);
+      this.sprite.body.maxVelocity.y = gSmbPhysics.vertical.stage_2.initial_vy;
+      this.sprite.setVelocityY(-gSmbPhysics.vertical.stage_2.initial_vy * this.compesation);
+      this.sprite.setGravityY(gSmbPhysics.vertical.stage_2.holdingA_gy - this.gravityY);
     }
   }
 
@@ -418,13 +409,13 @@ dragY: ${this.sprite.body.drag.y}
   }
 
   fallOnEnter() {
-    this.sprite.body.maxVelocity.y = this.smbPhysics.vertical.downwardMax;
+    this.sprite.body.maxVelocity.y = gSmbPhysics.vertical.downwardMax;
     if (this.jumpStage === 1) {
-      this.sprite.setGravityY(this.smbPhysics.vertical.stage_0.falling_gy);
+      this.sprite.setGravityY(gSmbPhysics.vertical.stage_0.falling_gy - this.gravityY);
     } else if (this.jumpStage === 2) {
-      this.sprite.setGravityY(this.smbPhysics.vertical.stage_1.falling_gy);
+      this.sprite.setGravityY(gSmbPhysics.vertical.stage_1.falling_gy - this.gravityY);
     } else if (this.jumpStage === 3) {
-      this.sprite.setGravityY(this.smbPhysics.vertical.stage_2.falling_gy);
+      this.sprite.setGravityY(gSmbPhysics.vertical.stage_2.falling_gy - this.gravityY);
     }
   }
 }
