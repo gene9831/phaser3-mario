@@ -46,8 +46,7 @@ export default class PlayerController {
       .setMaxVelocity(gSmbPhysics.velocities.maxRun, Infinity)
       .setDragX(gSmbPhysics.decelerations.release)
       .setGravityY(gSmbPhysics.vertical.stage_0.falling_gy - this.gravityY)
-      // https://kb.speeddemosarchive.com/File:Hitboxes.png
-      .setBodySize(22, 26);
+      .setBodySize(24, 26);
     this.sprite.body.offset.y += 3;
 
     this.sprite.setData("previousVelocityY", 0);

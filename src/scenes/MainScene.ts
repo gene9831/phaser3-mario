@@ -2,11 +2,11 @@ import Phaser from "phaser";
 import AnimatedTiles from "../plugins/phaser-animated-tiles/AnimatedTiles";
 import { debugDraw } from "~/utils/debug";
 import PlayerController from "./PlayerController";
-import { TileMapData, TileMapConfig, TilesetConfig } from "./TileMapLoader";
-import TilePushAnimation from "./TilePushAnimation";
-import TileItem from "./TileItem";
-import MushRoomAnim from "./MushRoomAnim";
-import { gSmbPhysics } from "~/main";
+import BlockPushAnimation from "./BlockPushAnimation";
+import { TileMapConfig, TileMapData, TilesetConfig } from "./tile-assets/Types";
+import SpawnManager from "~/spawner/SpawnManager";
+import { BaseSprite } from "~/objects/BaseSprite";
+import { VAValues } from "~/constants";
 
 const BLOCK_SIZE = 32;
 export default class MainScene extends Phaser.Scene {
@@ -20,12 +20,9 @@ export default class MainScene extends Phaser.Scene {
   private owPlatform!: Phaser.Tilemaps.TilemapLayer;
 
   private animatedTiles!: AnimatedTiles;
+  private objectSpawner!: SpawnManager;
 
-  private tilePushAnim?: TilePushAnimation;
-
-  private propItems: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody[] = [];
-
-  private mushroomAnim: MushRoomAnim = new MushRoomAnim();
+  private tilePushAnim?: BlockPushAnimation;
 
   private debugText?: Phaser.GameObjects.Text;
   private drawDebug = true;
@@ -47,6 +44,12 @@ export default class MainScene extends Phaser.Scene {
       key: "AnimatedTiles",
       url: AnimatedTiles,
       sceneKey: "animatedTiles",
+    });
+
+    this.load.scenePlugin({
+      key: "ObjectSpawner",
+      url: SpawnManager,
+      sceneKey: "objectSpawner",
     });
   }
 
@@ -70,52 +73,38 @@ export default class MainScene extends Phaser.Scene {
     ugBackground.setActive(false).setVisible(false);
     ugPlatform.setActive(false).setVisible(false);
 
-    level.objects.forEach((objectLayer) => {
-      objectLayer.objects.forEach((object) => {
-        if (object.name !== "mushroom") return;
-        if (object.gid) {
-          const item = new TileItem(object);
-          const tileset = tilesets.find(
-            (tileset) => item.gid >= tileset.firstgid && item.gid < tileset.firstgid + tileset.total
-          );
-          if (tileset) {
-            const sprite = this.physics.add
-              .sprite(item.x, item.y, tileset.image.key, item.gid - tileset.firstgid)
-              .setSize(26, 32)
-              .setBounceX(1)
-              .setMaxVelocity(Infinity, gSmbPhysics.vertical.downwardMax)
-              .setActive(false)
-              .setVisible(false)
-              .setDepth(-1);
-            sprite.body.setAllowGravity(false);
-            this.propItems.push(sprite);
-          }
-        }
-      });
-    });
-
     this.owPlatform.setCollisionByProperty({ collides: true });
     const player = this.physics.add.sprite(100, this.owPlatform.height - BLOCK_SIZE * 2.5, "mario", "mario-idle-0");
     this.playerController = new PlayerController(player, this.addKeys(), this.drawDebug);
 
     this.animatedTiles.init(level);
+    this.objectSpawner.init({
+      tilemap: level,
+      blocksLayer: this.owPlatform,
+      interactiveSprite: player,
+    });
 
-    this.tilePushAnim = new TilePushAnimation(this, tilesets);
+    this.tilePushAnim = new BlockPushAnimation(this, tilesets);
 
     this.physics.add.collider(player, this.owPlatform, this.playerCollidesWithTile, undefined, this);
     this.physics.add.collider(player, this.tilePushAnim.imageGroup);
-    this.physics.add.collider(this.propItems, this.owPlatform);
-    this.physics.add.collider(this.propItems, this.tilePushAnim.imageGroup, (propItem, tile) => {
-      if (propItem.active) {
-        if (propItem.body.touching.down && tile.body.touching) {
-          propItem.body.velocity.y = -300;
+    this.physics.add.collider(this.objectSpawner.spawnedSprites.items, this.owPlatform);
+    this.physics.add.collider(this.objectSpawner.spawnedSprites.items, this.tilePushAnim.imageGroup, (obj1, obj2) => {
+      const baseObj = obj1 as BaseSprite;
+      if (baseObj.objType === "item" && baseObj.body.touching.down) {
+        baseObj.setVelocityY(-VAValues.v_downMax);
+
+        const image = obj2 as Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
+        if (baseObj.x < image.getCenter().x) {
+          baseObj.setVelocityX(-baseObj.body.velocity.x);
         }
       }
     });
+    this.physics.add.collider(this.objectSpawner.spawnedSprites.enemies, this.owPlatform);
 
     this.physics.world.setBounds(0, 0, level.widthInPixels, level.heightInPixels, true, true, false, false);
 
-    this.cameras.main.setBounds(0, 16, this.physics.world.bounds.width, this.physics.world.bounds.height - 32);
+    this.cameras.main.setBounds(0, 0, this.physics.world.bounds.width, this.physics.world.bounds.height);
     this.cameras.main.startFollow(player, true, 0.1);
 
     this.debugText = this.add
@@ -167,8 +156,6 @@ export default class MainScene extends Phaser.Scene {
 
     this.tilePushAnim?.update(t, dt);
 
-    this.mushroomAnim.update(t, dt);
-
     // debug
     if (this.drawDebug && this.debugText) {
       this.debugText.setText(`fps: ${this.game.loop.actualFps}
@@ -216,16 +203,17 @@ ${this.playerController?.debugText || ""}`);
   private playerPushBlock(_player: Phaser.Types.Physics.Arcade.GameObjectWithBody, tile: Phaser.Tilemaps.Tile) {
     // 顶砖块的逻辑写在这里
 
-    const propItem = this.propItems.find((item) => tile.containsPoint(item.x, item.y));
-    this.tilePushAnim?.play(
-      tile,
-      (item) => {
-        if (item) {
-          this.mushroomAnim.add(item);
-        }
-      },
-      propItem
-    );
+    let spawnConfigIndex = 0;
+    const spawnConfig = this.objectSpawner.spawnOnCollisionConfigs.find((config, index) => {
+      spawnConfigIndex = index;
+      return tile.containsPoint(config.spawnX, config.spawnY);
+    });
+
+    this.tilePushAnim?.play(tile, () => {
+      if (spawnConfig) {
+        this.objectSpawner.spawnOnCollision(spawnConfigIndex);
+      }
+    });
 
     if (tile.properties.name === "? block") {
       tile.index = (tile.properties.pushid || 0) + tile.tileset.firstgid;

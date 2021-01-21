@@ -1,8 +1,6 @@
-import { easeInQuad, easeOutQuad } from "~/utils/easing-functions";
-
 type OnExitCallback = (item?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) => void;
 
-export default class TilePushAnimation {
+export default class BlockPushAnimation {
   private data = new Map<
     number,
     {
@@ -19,21 +17,19 @@ export default class TilePushAnimation {
         down: boolean;
       };
       onExit?: OnExitCallback;
-      onExitArgs?: any[];
+      onExitContext?: any;
+      // 每帧位移之差。相当于速度
+      deltaY?: number;
+      // 每帧位移之差之差。相当于加速度
+      dealtaDeltaY?: number;
+      maxY?: number;
     }
   >();
 
   imageGroup: Phaser.Physics.Arcade.Group;
 
-  private frames = 8;
-  private goOffsetY = -10;
-  private backOffsetY = 10;
-  // h = (1/2) * g * t^2
-  // v_max = 2 * h / t
-  private vUp = (2 * this.goOffsetY) / (this.frames / 60);
-  private vDown = (2 * this.backOffsetY) / (this.frames / 60);
-  private aUp = -this.vUp / (this.frames / 60);
-  private aDown = this.vDown / (this.frames / 60);
+  private goFrames = 8;
+  private backFrames = 9;
 
   constructor(scene: Phaser.Scene, tilesets: Phaser.Tilemaps.Tileset | Phaser.Tilemaps.Tileset[]) {
     let _tilesets: Phaser.Tilemaps.Tileset[] = [];
@@ -69,7 +65,7 @@ export default class TilePushAnimation {
     });
   }
 
-  play(tile: Phaser.Tilemaps.Tile, onExit: OnExitCallback, ...args: any) {
+  play(tile: Phaser.Tilemaps.Tile, onExit?: OnExitCallback) {
     const data = this.data.get(tile.tileset.firstgid);
 
     if (!data) return;
@@ -77,7 +73,9 @@ export default class TilePushAnimation {
     this.stop(tile.tileset.firstgid);
 
     data.onExit = onExit;
-    data.onExitArgs = args;
+    data.deltaY = -3.5;
+    data.dealtaDeltaY = 0.5;
+    data.maxY = tile.pixelY + tile.height / 16;
 
     data.tile = tile;
     // 将碰撞信息保存
@@ -95,10 +93,8 @@ export default class TilePushAnimation {
     const tileid = tile.properties.pushid || tile.index - tile.tileset.firstgid;
     data.image.setFrame(tileid);
 
-    // 设置位置和初速度
+    // 设置位置
     data.image.setPosition(tile.pixelX, tile.pixelY);
-    data.image.setVelocityY(this.vUp);
-    data.image.setAccelerationY(this.aUp);
 
     data.status = "go";
     data.elapsedFrames = 0;
@@ -118,13 +114,11 @@ export default class TilePushAnimation {
 
     // 恢复位置
     data.image.setPosition(data.orginalX, data.orginalY);
-    data.image.setVelocityY(0);
-    data.image.setAccelerationY(0);
 
     data.tile = undefined;
     data.status = "static";
 
-    data.onExit?.(...(data.onExitArgs || []));
+    data.onExit?.();
   }
 
   update(t: number, dt: number) {
@@ -134,20 +128,20 @@ export default class TilePushAnimation {
         return;
       }
 
+      data.image.y += data.deltaY!;
+      data.deltaY! += data.dealtaDeltaY!;
+
+      if (data.image.y > data.maxY!) {
+        data.image.y = data.maxY!;
+      }
+
       data.elapsedFrames += 1;
 
-      // 前两帧没有位移。我这里给了 9 帧
-      if (data.elapsedFrames > this.frames) {
-        if (data.status === "back") {
-          data.status = "static";
-          // // 设置速度下一帧才生效，这里在stop前一帧设置为0
-          // data.image.setVelocityY(0);
-          // data.image.setAccelerationY(0);
-        } else if (data.status === "go") {
-          data.status = "back";
-          data.image.setAccelerationY(this.aDown);
-          data.elapsedFrames = 0;
-        }
+      if (data.status === "go" && data.elapsedFrames >= this.goFrames) {
+        data.status = "back";
+        data.elapsedFrames = 0;
+      } else if (data.status === "back" && data.elapsedFrames >= this.backFrames) {
+        data.status = "static";
       }
     });
   }

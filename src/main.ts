@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 
 import MainScene from "./scenes/MainScene";
-import TileMapLoader from "./scenes/TileMapLoader";
+import { TileMapLoader, TilesetLoader } from "./scenes/tile-assets/Loaders";
 import { SMBPhysics } from "./smb-physics";
+import "./constants";
 
 const gSmbPhysics = new SMBPhysics(32);
 console.log(gSmbPhysics);
@@ -11,7 +12,7 @@ const config: Phaser.Types.Core.GameConfig = {
   parent: "phaser3-game",
   type: Phaser.AUTO,
   width: 1024,
-  height: 448,
+  height: 480,
   audio: {
     disableWebAudio: true,
   },
@@ -22,10 +23,9 @@ const config: Phaser.Types.Core.GameConfig = {
     default: "arcade",
     arcade: {
       debug: true,
-      gravity: { y: 1500 },
     },
   },
-  scene: [TileMapLoader, MainScene],
+  scene: [TileMapLoader, TilesetLoader, MainScene],
 };
 
 export { gSmbPhysics };
