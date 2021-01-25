@@ -8,7 +8,7 @@ This is a TypeScript specific fork of [phaser3-parcel-template](https://github.c
 
 ## Preview
 
-![super-mario-bros](/public/images/super-mario-bros.png)
+![preview](/public/images/preview.gif)
 
 ## Prerequisites
 
