@@ -19,7 +19,7 @@ export default class StateMachine {
   // readonly stateGroups = new Map<string, IStateGroup>();
   private currentState?: IState;
   private nextStateTimer: number = -1;
-  private debug: boolean = false;
+  debug: boolean = false;
 
   constructor(context: any, name: string, debug: boolean = false) {
     this.context = context;

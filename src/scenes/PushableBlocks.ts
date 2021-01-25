@@ -1,6 +1,6 @@
 type OnExitCallback = (item?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) => void;
 
-export default class BlockPushAnimation {
+export default class PushableBlocks {
   private data = new Map<
     number,
     {
@@ -31,6 +31,7 @@ export default class BlockPushAnimation {
   private goFrames = 8;
   private backFrames = 9;
 
+  // TODO 写成插件。待优化，tileset 中要有 pushable 的属性的 block 才需要处理
   constructor(scene: Phaser.Scene, tilesets: Phaser.Tilemaps.Tileset | Phaser.Tilemaps.Tileset[]) {
     let _tilesets: Phaser.Tilemaps.Tileset[] = [];
 
@@ -65,7 +66,7 @@ export default class BlockPushAnimation {
     });
   }
 
-  play(tile: Phaser.Tilemaps.Tile, onExit?: OnExitCallback) {
+  play(tile: Phaser.Tilemaps.Tile, collisionPoint: Phaser.Types.Math.Vector2Like, onExit?: OnExitCallback) {
     const data = this.data.get(tile.tileset.firstgid);
 
     if (!data) return;
@@ -95,6 +96,8 @@ export default class BlockPushAnimation {
 
     // 设置位置
     data.image.setPosition(tile.pixelX, tile.pixelY);
+
+    data.image.setData("collisionPoint", collisionPoint);
 
     data.status = "go";
     data.elapsedFrames = 0;

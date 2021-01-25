@@ -3,9 +3,10 @@ import { BaseSprite } from "~/objects/BaseSprite";
 interface ObjectFactory {
   create(
     scene: Phaser.Scene,
+    key: string,
     x: number,
     y: number,
-    key: string,
+    textureKey: string,
     frame?: string | number,
     insideBlock?: boolean
   ): BaseSprite;
@@ -18,13 +19,14 @@ type ObjectConfig = {
 
 type SpawnConfig = {
   key: string;
+  tileid: number;
   tiledObject: Phaser.Types.Tilemaps.TiledObject;
   tileset: Phaser.Tilemaps.Tileset;
-  readonly gid: number;
-  readonly spawnX: number;
-  readonly spawnY: number;
+  gid: number;
+  spawnX: number;
+  spawnY: number;
   spawned: boolean;
-  sprite?: BaseSprite
+  sprite?: BaseSprite;
 } & ObjectConfig;
 
 export { ObjectConfig, ObjectFactory, SpawnConfig };

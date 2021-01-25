@@ -46,7 +46,7 @@ export default class PlayerController {
       .setMaxVelocity(gSmbPhysics.velocities.maxRun, Infinity)
       .setDragX(gSmbPhysics.decelerations.release)
       .setGravityY(gSmbPhysics.vertical.stage_0.falling_gy - this.gravityY)
-      .setBodySize(24, 26);
+      .setSize(24, 26);
     this.sprite.body.offset.y += 3;
 
     this.sprite.setData("previousVelocityY", 0);
@@ -57,7 +57,7 @@ export default class PlayerController {
 
     this.createAnims();
 
-    this.stateMachine = new StateMachine(this, "player", debug)
+    this.stateMachine = new StateMachine(this, "player")
       .addStateGroup(
         States.Ground.NAME,
         {

@@ -2,10 +2,11 @@ import Phaser from "phaser";
 import AnimatedTiles from "../plugins/phaser-animated-tiles/AnimatedTiles";
 import { debugDraw } from "~/utils/debug";
 import PlayerController from "./PlayerController";
-import BlockPushAnimation from "./BlockPushAnimation";
+import PushableBlocks from "./PushableBlocks";
 import { TileMapConfig, TileMapData, TilesetConfig } from "./tile-assets/Types";
 import SpawnManager from "~/spawner/SpawnManager";
 import { BaseSprite } from "~/objects/BaseSprite";
+import SpriteRect from "~/objects/SpriteRect";
 import { VAValues } from "~/constants";
 
 const BLOCK_SIZE = 32;
@@ -17,12 +18,12 @@ export default class MainScene extends Phaser.Scene {
 
   private gameTime: number = 0;
 
-  private owPlatform!: Phaser.Tilemaps.TilemapLayer;
+  private platform!: Phaser.Tilemaps.TilemapLayer;
 
   private animatedTiles!: AnimatedTiles;
-  private objectSpawner!: SpawnManager;
+  private spawnManager!: SpawnManager;
 
-  private tilePushAnim?: BlockPushAnimation;
+  private pushableBlocks?: PushableBlocks;
 
   private debugText?: Phaser.GameObjects.Text;
   private drawDebug = true;
@@ -47,9 +48,9 @@ export default class MainScene extends Phaser.Scene {
     });
 
     this.load.scenePlugin({
-      key: "ObjectSpawner",
+      key: "SpawnManager",
       url: SpawnManager,
-      sceneKey: "objectSpawner",
+      sceneKey: "spawnManager",
     });
   }
 
@@ -61,46 +62,63 @@ export default class MainScene extends Phaser.Scene {
       return level.addTilesetImage(config.defaultName, config.key);
     });
 
-    const owBackground = level.createLayer("地上背景", tilesets).setDepth(-1);
-    const owLandspace = level.createLayer("地上风景", tilesets).setDepth(-1);
-    this.owPlatform = level.createLayer("地上平台", tilesets);
-    const target = level.createLayer("目标", tilesets);
-    const castle1 = level.createLayer("城堡", tilesets);
+    const background = level.createLayer("背景", tilesets).setDepth(-1);
+    const landspace = level.createLayer("风景", tilesets).setDepth(-1);
+    const platform = level.createLayer("平台", tilesets).setDepth(0);
+    const target = level.createLayer("目标", tilesets).setDepth(0);
+    const castle1 = level.createLayer("城堡", tilesets).setDepth(0);
     const castle2 = level.createLayer("城堡2", tilesets).setDepth(1);
-    const ugBackground = level.createLayer("地下背景", tilesets);
-    const ugPlatform = level.createLayer("地下平台", tilesets);
 
-    ugBackground.setActive(false).setVisible(false);
-    ugPlatform.setActive(false).setVisible(false);
+    this.platform = platform;
 
-    this.owPlatform.setCollisionByProperty({ collides: true });
-    const player = this.physics.add.sprite(100, this.owPlatform.height - BLOCK_SIZE * 2.5, "mario", "mario-idle-0");
+    this.platform.setCollisionByProperty({ collides: true });
+    const player = this.physics.add.sprite(100, this.platform.height - BLOCK_SIZE * 2.5, "mario", "mario-idle-0");
     this.playerController = new PlayerController(player, this.addKeys(), this.drawDebug);
 
+    // 一些插件
+    this.pushableBlocks = new PushableBlocks(this, tilesets);
     this.animatedTiles.init(level);
-    this.objectSpawner.init({
+    this.spawnManager.init({
       tilemap: level,
-      blocksLayer: this.owPlatform,
+      blocksLayer: this.platform,
       interactiveSprite: player,
     });
 
-    this.tilePushAnim = new BlockPushAnimation(this, tilesets);
+    this.physics.add.collider(player, this.platform, this.playerCollidesWithBlock, undefined, this);
+    this.physics.add.collider(player, this.pushableBlocks.imageGroup);
+    this.physics.add.overlap(
+      player,
+      this.spawnManager.spriteRectGroup,
+      (_player, obj2) => {
+        const rect = obj2 as SpriteRect;
 
-    this.physics.add.collider(player, this.owPlatform, this.playerCollidesWithTile, undefined, this);
-    this.physics.add.collider(player, this.tilePushAnim.imageGroup);
-    this.physics.add.collider(this.objectSpawner.spawnedSprites.items, this.owPlatform);
-    this.physics.add.collider(this.objectSpawner.spawnedSprites.items, this.tilePushAnim.imageGroup, (obj1, obj2) => {
-      const baseObj = obj1 as BaseSprite;
-      if (baseObj.objType === "item" && baseObj.body.touching.down) {
-        baseObj.setVelocityY(-VAValues.v_downMax);
-
-        const image = obj2 as Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
-        if (baseObj.x < image.getCenter().x) {
-          baseObj.setVelocityX(-baseObj.body.velocity.x);
+        switch (rect.parent.getData("spriteType")) {
+          case "item":
+            break;
+          case "enemy":
+            const player = _player as Phaser.Physics.Arcade.Sprite;
+            if (player.y < rect.y) {
+              rect.parent.trampled(player);
+            } else {
+              this.scene.pause();
+              console.log("你已经死了，只是代码逻辑还没写");
+            }
+            break;
+          default:
+            break;
         }
-      }
+      },
+      undefined,
+      this
+    );
+
+    this.physics.add.collider(this.spawnManager.spriteGroup, this.platform);
+    this.physics.add.collider(this.spawnManager.spriteGroup, this.pushableBlocks.imageGroup, (obj1, obj2) => {
+      const sprite = obj1 as BaseSprite;
+      const block = obj2 as Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
+
+      sprite.pushed(block);
     });
-    this.physics.add.collider(this.objectSpawner.spawnedSprites.enemies, this.owPlatform);
 
     this.physics.world.setBounds(0, 0, level.widthInPixels, level.heightInPixels, true, true, false, false);
 
@@ -136,7 +154,7 @@ export default class MainScene extends Phaser.Scene {
       this
     );
 
-    // debugDraw(layer, this);
+    // debugDraw(this.owPlatform, this);
   }
 
   private addKeys() {
@@ -154,7 +172,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.playerController?.update(dt);
 
-    this.tilePushAnim?.update(t, dt);
+    this.pushableBlocks?.update(t, dt);
 
     // debug
     if (this.drawDebug && this.debugText) {
@@ -164,10 +182,9 @@ ${this.playerController?.debugText || ""}`);
     }
   }
 
-  private playerCollidesWithTile(_player: Phaser.Types.Physics.Arcade.GameObjectWithBody, _tile: unknown) {
+  private playerCollidesWithBlock(_player: Phaser.Types.Physics.Arcade.GameObjectWithBody, _tile: unknown) {
     const tile = _tile as Phaser.Tilemaps.Tile;
     if (_player.body.blocked.up && tile.faceBottom) {
-      // remove 后 layerData 中对应的 tile 会变成 null. Tile.destroy() 好像并没有把内存清除掉
       const layer = tile.tilemapLayer;
       const bodyWidth = _player.body.width;
       let offsetWidthTimes = 0;
@@ -194,29 +211,37 @@ ${this.playerController?.debugText || ""}`);
         const nextTile = layer.getTileAt(tile.x + 1, tile.y);
         const pushTile = _player.body.x + bodyWidth / 2 > tile.pixelX + tile.width && nextTile ? nextTile : tile;
         if (pushTile.properties.pushable) {
-          this.playerPushBlock(_player, pushTile);
+          this.pushBlock(_player, pushTile);
         }
       }
     }
   }
 
-  private playerPushBlock(_player: Phaser.Types.Physics.Arcade.GameObjectWithBody, tile: Phaser.Tilemaps.Tile) {
+  private pushBlock(_player: Phaser.Types.Physics.Arcade.GameObjectWithBody, tile: Phaser.Tilemaps.Tile) {
     // 顶砖块的逻辑写在这里
 
     let spawnConfigIndex = 0;
-    const spawnConfig = this.objectSpawner.spawnOnCollisionConfigs.find((config, index) => {
+    const spawnConfig = this.spawnManager.spawnOnCollisionConfigs.find((config, index) => {
       spawnConfigIndex = index;
       return tile.containsPoint(config.spawnX, config.spawnY);
     });
 
-    this.tilePushAnim?.play(tile, () => {
-      if (spawnConfig) {
-        this.objectSpawner.spawnOnCollision(spawnConfigIndex);
+    this.pushableBlocks?.play(
+      tile,
+      {
+        x: _player.body.center.x,
+        y: _player.body.y,
+      },
+      () => {
+        if (spawnConfig) {
+          this.spawnManager.spawnOnCollision(spawnConfigIndex);
+        }
       }
-    });
+    );
 
-    if (tile.properties.name === "? block") {
-      tile.index = (tile.properties.pushid || 0) + tile.tileset.firstgid;
+    if (tile.properties.pushable && tile.properties.pushid) {
+      // 一次性砖块
+      tile.index = tile.properties.pushid + tile.tileset.firstgid;
       tile.properties.pushable = false;
     }
   }

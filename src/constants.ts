@@ -2,6 +2,9 @@ type ObjectValues = {
   gravity?: number;
   v_downMax?: number;
   v_x?: number;
+  v_x_die?: number;
+  v_y_die?: number;
+  v_trample?: number;
 };
 
 type ObjectsValues = {
@@ -11,6 +14,7 @@ type ObjectsValues = {
 type Values = {
   gravity: number;
   v_downMax: number;
+  characters: ObjectsValues;
   items: ObjectsValues;
   enemies: ObjectsValues;
 };
@@ -19,6 +23,11 @@ type Values = {
 const FPS30_VALUES: Values = {
   gravity: 1,
   v_downMax: 6,
+  characters: {
+    mario: {
+      v_trample: 8,
+    },
+  },
   items: {
     magicMushroom: {
       v_x: 2,
@@ -27,11 +36,14 @@ const FPS30_VALUES: Values = {
   enemies: {
     goomba: {
       v_x: 1,
+      v_x_die: 2,
+      v_y_die: 6,
     },
   },
 };
 
 const BLOCK_PIXELS = 32;
+const GAME_FPS = 60;
 
 const transformToPixelsPerS = (values: Values, fps: number) => {
   const dfs = (object: any) => {
@@ -57,4 +69,4 @@ const transformToPixelsPerS = (values: Values, fps: number) => {
 
 const VAValues = transformToPixelsPerS(FPS30_VALUES, 30);
 
-export { VAValues, BLOCK_PIXELS };
+export { VAValues, BLOCK_PIXELS, GAME_FPS };

@@ -7,31 +7,33 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
   readonly spawnConfigs = new Array<SpawnConfig>();
   readonly spawnOnCollisionConfigs = new Array<SpawnConfig>();
 
-  readonly spawnedSprites = {
-    items: new Array<BaseSprite>(),
-    enemies: new Array<BaseSprite>(),
-    others: new Array<BaseSprite>(),
-  };
+  readonly spriteGroup: Phaser.GameObjects.Group;
+  readonly spriteRectGroup: Phaser.GameObjects.Group;
+
+  private collider?: Phaser.Physics.Arcade.Collider;
 
   private interactiveSprite?: Phaser.GameObjects.Sprite;
 
+  // 这个机制要改。将地图划分为大地图块，相邻大地图块的精灵都产生
   readonly spawnDistance = BLOCK_PIXELS * 14;
   readonly destoryDistance = BLOCK_PIXELS * 32;
 
   constructor(scene: Phaser.Scene, pluginManager: Phaser.Plugins.PluginManager) {
     super(scene, pluginManager);
 
+    this.spriteGroup = this.scene.add.group();
+    this.spriteRectGroup = this.scene.add.group();
+
     if (!scene.sys.settings.isBooted) {
       scene.sys.events.once("boot", this.boot, this);
     }
   }
 
-  //  Called when the Plugin is booted by the PluginManager.
-  //  If you need to reference other systems in the Scene (like the Loader or DisplayList) then set-up those references now, not in the constructor.
   boot() {
     const eventEmitter = this.systems.events;
 
     eventEmitter.on("update", this.update, this);
+    eventEmitter.on("postupdate", this.postUpdate, this);
     eventEmitter.on("shutdown", this.shutdown, this);
     eventEmitter.on("destroy", this.destroy, this);
   }
@@ -45,6 +47,7 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
 
     this.interactiveSprite = interactiveSprite;
 
+    // 遍历所有的 TiledObject
     tilemap.objects.forEach((objectLayer) => {
       objectLayer.objects.forEach((object) => {
         if (object.gid) {
@@ -60,19 +63,41 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
           if (!key) return;
 
           // push spawn config
-          const spawnConfig = this.createSpawnConfig(key, object, tileset);
+          const spawnConfig = this.createSpawnConfig(key, tileid, object, tileset);
           if (spawnConfig) {
             if (blocksLayer.getTileAtWorldXY(spawnConfig.spawnX, spawnConfig.spawnY)) {
               this.spawnOnCollisionConfigs.push(spawnConfig);
             } else {
               this.spawnConfigs.push(spawnConfig);
             }
+
+            // create anims
+            const tileAnimation: Array<{ tileid: number; duration: number }> | undefined =
+              tileset.tileData[tileid]?.animation;
+
+            if (!this.scene.anims.exists(spawnConfig.key) && tileAnimation) {
+              this.scene.anims.create({
+                key: spawnConfig.key,
+                frames: tileAnimation.map((anim) => ({
+                  key: tileset.image.key,
+                  frame: anim.tileid,
+                  duration: anim.duration,
+                })),
+                repeat: -1,
+              });
+            }
           }
         }
       });
     });
 
-    this.scene.physics.add.collider(this.spawnedSprites.enemies, this.spawnedSprites.enemies);
+    // 敌人之间相互碰撞
+    this.collider = this.scene.physics.add.collider(this.spriteGroup, this.spriteGroup, undefined, (obj1, obj2) => {
+      const t1 = obj1.getData("spriteType");
+      const t2 = obj2.getData("spriteType");
+
+      return t1 === "enemy" && t2 === "enemy";
+    });
   }
 
   update(time: number, delta: number) {
@@ -81,24 +106,25 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
     const spriteX = this.interactiveSprite.x;
     const spriteY = this.interactiveSprite.y;
 
-    for (let key in this.spawnedSprites) {
-      const sprites: Array<BaseSprite> = this.spawnedSprites[key];
-      for (let i = sprites.length - 1; i >= 0; i--) {
-        const sprite = sprites[i];
-
-        if (
-          sprite.x < spriteX - this.destoryDistance ||
-          sprite.x > spriteX + this.destoryDistance ||
-          sprite.y < spriteY - this.destoryDistance ||
-          sprite.y > spriteY + this.destoryDistance
-        ) {
+    this.spriteGroup.getChildren().forEach((_child) => {
+      const sprite = _child as BaseSprite;
+      if (
+        !sprite.body ||
+        sprite.x < spriteX - this.destoryDistance ||
+        sprite.x > spriteX + this.destoryDistance ||
+        sprite.y < spriteY - this.destoryDistance ||
+        sprite.y > spriteY + this.destoryDistance
+      ) {
+        this.spriteGroup.remove(_child);
+        if (sprite.rect1) this.spriteRectGroup.remove(sprite.rect1);
+        if (sprite.rect2) this.spriteRectGroup.remove(sprite.rect2);
+        if (sprite.body) {
           sprite.destroy();
-          sprites.splice(i, 1);
-        } else {
-          sprite.update(time, delta);
         }
+      } else {
+        sprite.update(time, delta);
       }
-    }
+    });
 
     for (let i = this.spawnConfigs.length - 1; i >= 0; i--) {
       const spawnConfig = this.spawnConfigs[i];
@@ -112,20 +138,19 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
           // 生成
           const sprite = spawnConfig.Factory.create(
             this.scene,
+            spawnConfig.key,
             spawnConfig.spawnX,
             spawnConfig.spawnY,
             spawnConfig.tileset.image.key,
-            spawnConfig.gid - spawnConfig.tileset.firstgid
+            spawnConfig.tileid
           ).setDepth(-1);
 
-          if (sprite.objType === "item") {
-            this.spawnedSprites.items.push(sprite);
-          } else if (sprite.objType === "enemy") {
-            this.spawnedSprites.enemies.push(sprite);
-          } else {
-            this.spawnedSprites.others.push(sprite);
-          }
+          sprite.setData("tileProperties", spawnConfig.tileset.tileProperties[spawnConfig.tileid]);
+
           spawnConfig.sprite = sprite;
+          this.spriteGroup.add(sprite);
+          if (sprite.rect1) this.spriteRectGroup.add(sprite.rect1);
+          if (sprite.rect2) this.spriteRectGroup.add(sprite.rect2);
 
           if (spawnConfig.repeat) {
             // repeat 不为 0, 可重复生成
@@ -148,6 +173,13 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
     }
   }
 
+  postUpdate(time: number, delta: number) {
+    this.spriteGroup.getChildren().forEach((_child) => {
+      const sprite = _child as BaseSprite;
+      sprite.postUpdate(time, delta);
+    });
+  }
+
   //  Called when a Scene shuts down, it may then come back again later (which will invoke the 'start' event) but should be considered dormant.
   shutdown() {}
 
@@ -155,16 +187,21 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
   destroy() {
     this.shutdown();
 
-    for (let key in this.spawnedSprites) {
-      const sprites: Array<BaseSprite> = this.spawnedSprites[key];
-      sprites.forEach((sprite) => sprite.destroy());
-    }
+    this.collider?.destroy();
+    this.spriteGroup.getChildren().forEach((_child) => {
+      const sprite = _child as BaseSprite;
+      this.spriteGroup.remove(_child);
+      if (sprite.rect1) this.spriteRectGroup.remove(sprite.rect1);
+      if (sprite.rect2) this.spriteRectGroup.remove(sprite.rect2);
+      sprite.destroy();
+    });
 
     super.destroy();
   }
 
   createSpawnConfig(
     key: string,
+    tileid: number,
     tiledObject: Phaser.Types.Tilemaps.TiledObject,
     tileset: Phaser.Tilemaps.Tileset
   ): SpawnConfig | undefined {
@@ -184,6 +221,7 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
 
     return {
       key,
+      tileid,
       tiledObject,
       tileset,
       gid,
@@ -199,21 +237,20 @@ export default class SpawnManager extends Phaser.Plugins.ScenePlugin {
 
     const sprite = spawnConfig.Factory.create(
       this.scene,
+      spawnConfig.key,
       spawnConfig.spawnX,
       spawnConfig.spawnY,
       spawnConfig.tileset.image.key,
-      spawnConfig.gid - spawnConfig.tileset.firstgid,
+      spawnConfig.tileid,
       true
     ).setDepth(-1);
 
-    if (sprite.objType === "item") {
-      this.spawnedSprites.items.push(sprite);
-    } else if (sprite.objType === "enemy") {
-      this.spawnedSprites.enemies.push(sprite);
-    } else {
-      this.spawnedSprites.others.push(sprite);
-    }
+    sprite.setData("tileProperties", spawnConfig.tileset.tileProperties[spawnConfig.tileid]);
+
     spawnConfig.sprite = sprite;
+    this.spriteGroup.add(sprite);
+    if (sprite.rect1) this.spriteRectGroup.add(sprite.rect1);
+    if (sprite.rect2) this.spriteRectGroup.add(sprite.rect2);
 
     // 通过顶砖块生成的 object 只能生成一次
     this.spawnOnCollisionConfigs.splice(index, 1);
